@@ -26,6 +26,8 @@ swig_add_library(${PROJECT_NAME_PYTHON}
     TYPE MODULE
     LANGUAGE python
     SOURCES bibi.i ${sources}
+    OUTFILE_DIR ${CMAKE_INSTALL_PREFIX}/python
+    OUTPUT_DIR ${CMAKE_INSTALL_PREFIX}/python
 )
 target_include_directories(${PROJECT_NAME_PYTHON} SYSTEM PRIVATE ${Python3_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME_PYTHON} Python3::Module)
@@ -41,7 +43,10 @@ swig_add_library(${PROJECT_NAME_JAVA}
     TYPE MODULE
     LANGUAGE java 
     SOURCES bibi.i ${sources}
+    OUTFILE_DIR ${CMAKE_INSTALL_PREFIX}/java/com/zok/panda/
+    OUTPUT_DIR ${CMAKE_INSTALL_PREFIX}/java/com/zok/panda/
 )
+set_property(TARGET ${PROJECT_NAME_JAVA} PROPERTY SWIG_COMPILE_OPTIONS -package com.zok.panda)
 message(WARNING "LOL ${JAVA_INCLUDE_PATH}")
 target_include_directories(${PROJECT_NAME_JAVA} SYSTEM PRIVATE "$ENV{JAVA_HOME}/include" "$ENV{JAVA_HOME}/include/darwin")
 swig_link_libraries(${PROJECT_NAME_JAVA} ${JAVA_LIBRARIES})
@@ -51,7 +56,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/include/")
 
 option(BUILD_SHARED_LIBS ON)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-SET(CMAKE_INSTALL_PREFIX "./dist")
 
 include(GNUInstallDirs)
-
+install(TARGETS ${PROJECT_NAME_JAVA} DESTINATION java/lib/)
+install(TARGETS ${PROJECT_NAME_PYTHON} DESTINATION python/)
