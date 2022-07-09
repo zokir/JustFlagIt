@@ -34,10 +34,9 @@ target_link_libraries(${PROJECT_NAME_PYTHON} Python3::Module)
 # ---------------------------------------------------------
 
 # Java ----------------------------------------------------
-# TODO: Check if java found, else use JAVA_HOME env.
-set(JAVA_HOME $ENV{JAVA_HOME})
 find_package(Java)
 find_package(JNI)
+include(UseJava)
 set(PROJECT_NAME_JAVA ${PROJECT_NAME}_java)
 swig_add_library(${PROJECT_NAME_JAVA}
     TYPE MODULE
@@ -46,9 +45,10 @@ swig_add_library(${PROJECT_NAME_JAVA}
     OUTFILE_DIR ${CMAKE_INSTALL_PREFIX}/java/com/zok/panda/
     OUTPUT_DIR ${CMAKE_INSTALL_PREFIX}/java/com/zok/panda/
 )
+
+target_include_directories(${PROJECT_NAME_JAVA} SYSTEM PRIVATE ${JNI_INCLUDE_DIRS})
+
 set_property(TARGET ${PROJECT_NAME_JAVA} PROPERTY SWIG_COMPILE_OPTIONS -package com.zok.panda)
-message(WARNING "LOL ${JAVA_INCLUDE_PATH}")
-target_include_directories(${PROJECT_NAME_JAVA} SYSTEM PRIVATE "$ENV{JAVA_HOME}/include" "$ENV{JAVA_HOME}/include/darwin")
 swig_link_libraries(${PROJECT_NAME_JAVA} ${JAVA_LIBRARIES})
 # ---------------------------------------------------------
 
