@@ -1,1 +1,7 @@
-{"feature1":["robert","john"]}
+{
+    "feature1": {
+        "enabled": true,
+        "enabled_for" : ["robert", "john"],
+        "disabled_for" : ["andrea", "kelly"]
+    }
+}

@@ -2,66 +2,55 @@
 #include <curl/curl.h>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include "Constants.hh"
+#include "DataFetcher.hh"
 
-namespace {
+flagit::FlagIt::FlagIt(std::string sourceUrl) throw(std::invalid_argument)
+    : m_dataFetcherPtr(std::make_shared<DataFetcher>(sourceUrl)) {}
 
-    size_t writeFunction(void* ptr, size_t size, size_t nmemb, std::string* data) {
-        data->append((char*)ptr, size * nmemb);
-        return size * nmemb;
+bool flagit::FlagIt::enabled(std::string feature) throw (std::logic_error) {
+    nlohmann::json data = m_dataFetcherPtr->getData();
+    auto const& featureNode = data.find(feature);
+    if (featureNode == data.end()) {
+        return false;
     }
 
-nlohmann::json fetchData(std::string const& sourceUrl) {
-        std::cout << "Inside of fetchData" << std::endl;
-    nlohmann::json result;
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-    CURL* curl = curl_easy_init();
-    if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, sourceUrl.c_str());
-        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
-        curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
-        curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
-        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_GSSNEGOTIATE);
-        curl_easy_setopt(curl,CURLOPT_USERNAME, "");
-        curl_easy_setopt(curl,CURLOPT_USERNAME, "");
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, "FlagIt");
-        //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-
-        std::string response_string;
-        std::string header_string;
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_string);
-        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &header_string);
-
-        curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-        curl_global_cleanup();
-        curl = NULL;
-        result = nlohmann::json::parse(response_string);
-    } else {
-        std::cerr << "CURL FAILED" << std::endl;
+    auto const& enabledNode = featureNode->find(ENABLED);
+    if (enabledNode == featureNode->end()) {
+        return false;
     }
-    return result;
-}
-} // close namespace<anonymous>
 
-FlagIt::FlagIt(std::string sourceUrl): m_sourceUrl(sourceUrl) {
-	// make a call to sourceUrl and parse it out.
-    m_root = fetchData(m_sourceUrl);
-}
-
-bool FlagIt::enabledFor(std::string feature, std::string key) throw (std::logic_error) {
-    std::vector<std::string> keys = value(feature).asList();
-    return std::count(keys.begin(), keys.end(), key);
-;}
-
-Value FlagIt::value(std::string feature) {
-    return Value(m_root[feature.c_str()].get<nlohmann::json>());
-}
-
-std::vector<std::string> Value::asList() throw (std::logic_error) {
-    if (!m_value.is_array()) {
-        // TODO: Print what type is m_value in separate function
-        throw std::logic_error("Invalid access, cannot interpret object of type ### as array.");
+    if (!enabledNode->is_boolean()) {
+        throw std::logic_error("Enabled value for feature " + feature + " is not a boolean");
     }
-    return m_value.get<std::vector<std::string>>();
+
+    return enabledNode->get<bool>();
+}
+
+bool flagit::FlagIt::enabledFor(std::string feature, std::string key) throw (std::logic_error) {
+    return contains(feature, ENABLED_FOR, key);
+}
+
+bool flagit::FlagIt::disabledFor(std::string feature, std::string key) throw(std::logic_error) {
+    return contains(feature, DISABLED_FOR, key);
+}
+
+bool flagit::FlagIt::contains(std::string const& feature, std::string const& parameter, std::string const& key) {
+    nlohmann::json data = m_dataFetcherPtr->getData();
+    auto const& featureNode = data.find(feature);
+    if (featureNode == data.end()) {
+        return false;
+    }
+
+    auto const& parameterNode = featureNode->find(parameter);
+    if (parameterNode == featureNode->end()) {
+        return false;
+    }
+
+    if (!parameterNode->is_array()) {
+        throw std::logic_error("DisabledFor value for feature " + feature + " is not a list");
+    }
+
+    auto const& keyList = parameterNode->get<std::vector<std::string>>();
+    return std::find(keyList.begin(), keyList.end(), key) != keyList.end();
 }

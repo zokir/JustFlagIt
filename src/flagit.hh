@@ -1,20 +1,31 @@
 #pragma once
 
 #include <string>
-#include <nlohmann/json.hpp>
 
-struct Value {
-    Value(nlohmann::json const& value): m_value(value) {}
-    std::vector<std::string> asList() throw (std::logic_error);
-    nlohmann::json m_value;
-};
+namespace flagit {
+    
+    class DataFetcher;
 
-class FlagIt {
-public:
-    FlagIt(std::string sourceUrl);
-    Value value(std::string feature);
-    bool enabledFor(std::string feature, std::string key) throw (std::logic_error);
-private:
-    std::string m_sourceUrl;
-    nlohmann::json m_root;
-};
+    class FlagIt {
+    public:
+        // Create instance of this class from 'sourceUrl'.
+        FlagIt(std::string sourceUrl) throw(std::invalid_argument);
+
+        // Return true if 'feature' enabled for everyone, false otherwise.
+        bool enabled(std::string feature) throw(std::logic_error);
+
+        // Return true if 'feature' enabled for specified 'key', false otherwise.
+        bool enabledFor(std::string feature, std::string key) throw(std::logic_error);
+
+        // Return true if 'feature' disabled for specified 'key', false otherwise.
+        bool disabledFor(std::string feature, std::string key) throw(std::logic_error);
+
+    private:
+        // Used by enabled/disabledFor.
+        bool contains(std::string const& feature, std::string const& parameter, std::string const& key);
+
+        std::string m_sourceUrl;
+        std::shared_ptr<DataFetcher> m_dataFetcherPtr;
+    };
+
+} // close namespace flagit
