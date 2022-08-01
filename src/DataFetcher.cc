@@ -3,7 +3,6 @@
 #include <iostream>
 #include <thread>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
 #include <fstream>
@@ -65,24 +64,44 @@ namespace {
         }
         return "";
     }
+
+    // Return fileName corresponding to 'sourceUrl'. We need to have stable fileName that other processes can reuse,
+    // when url is shared. At the same time, we need to make sure we can actually create a file, so we need to remove
+    // unsupported characters. Its also good not to mangle the fileName so that people can debug easier.
+    std::string getFileNameFromUrl(std::string const& url) {
+        std::string fileName = url;
+        // Remove protocol from fileName.
+        fileName.erase(0, fileName.find("://") + 3);
+        std::replace(fileName.begin(), fileName.end(), '/', '_');
+        std::replace(fileName.begin(), fileName.end(), '?', '_');
+
+        return fileName;
+    }
+
+    std::string getFilePath(std::string const& url) {
+        return CONFIG_DIR + "/" + getFileNameFromUrl(url) + ".json";
+    }
+
 } // close namespace<anonymous>
 
-namespace flagit {
+namespace flagit {  
 
-    DataFetcher::DataFetcher(const std::string &sourceUrl, int remoteFetchMs, int fileFetchMs)
-    : m_sourceUrl(sourceUrl), m_remoteFetchMs(remoteFetchMs), m_fileFetchMs(fileFetchMs), m_filePath(CONFIG_DIR + "/" + "replace_wirh_url_hash" + ".json") {
+    DataFetcher::DataFetcher(std::string const &sourceUrl, int remoteFetchMs, int fileFetchMs)
+    : m_sourceUrl(sourceUrl), m_remoteFetchMs(remoteFetchMs), m_fileFetchMs(fileFetchMs), m_filePath(getFilePath(sourceUrl)) {
+        // get our config from remote.
         refreshFromRemote();
-
-        std::thread([this]() {
-            while (true) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(m_fileFetchMs));
-                refreshFromFile();
-            }
-        }).detach();
+        // make sure we do this periodically.
         std::thread([this]() {
             while (true) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(m_remoteFetchMs));
                 refreshFromRemote();
+            }
+        }).detach();
+        // refresh more frequently from file. This would help if we have more processes using this url.
+        std::thread([this]() {
+            while (true) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(m_fileFetchMs));
+                refreshFromFile();
             }
         }).detach();
     }
