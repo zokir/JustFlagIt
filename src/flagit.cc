@@ -8,6 +8,8 @@
 flagit::FlagIt::FlagIt(std::string sourceUrl) throw(std::invalid_argument)
     : m_dataFetcherPtr(std::make_shared<DataFetcher>(sourceUrl)) {}
 
+    flagit::FlagIt::FlagIt(std::shared_ptr<DataFetcher> dataFetcherPtr): m_dataFetcherPtr(dataFetcherPtr) {}
+
 bool flagit::FlagIt::enabled(std::string feature) throw (std::logic_error) {
     nlohmann::json data = m_dataFetcherPtr->getData();
     auto const& featureNode = data.find(feature);

@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.18)
 
 project(flagit VERSION 1.0 LANGUAGES CXX)
 
+# Fix, exception specifications with wrappers.
+set(CMAKE_CXX_STANDARD 14)
+
 # SWIG thing
 if(POLICY CMP0078)
   cmake_policy(SET CMP0078 NEW)
@@ -12,6 +15,9 @@ option(BUILD_CXX "Build C++" ON)
 message(STATUS "Build C++: ${BUILD_CXX}")
 option(BUILD_PYTHON "Build Python" ON)
 message(STATUS "Build Python: ${BUILD_PYTHON}")
+
+option(BUILD_TESTS "Build TESTS" ON)
+message(STATUS "Build TESTS: ${BUILD_TESTS}")
 
 set(CMAKE_SWIG_FLAGS)
 find_package(SWIG REQUIRED)
@@ -59,4 +65,26 @@ if (BUILD_CXX)
             DESTINATION cpp/lib
           PUBLIC_HEADER
             DESTINATION cpp/include)
+
 endif() # BUILD_CPP
+
+if (BUILD_TESTS)
+  include(CTest)
+  enable_testing()
+  set(CMAKE_MACOSX_RPATH 1)
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/cpp/lib")
+
+  find_package(Catch2 3 REQUIRED)
+  include(Catch)
+
+  add_executable(test_basic tests/test_basic.cc tests/MockDataFetcher.cc tests/MockDataFetcher.hh)
+  add_test(NAME test_basic COMMAND $<TARGET_FILE:test_basic>)
+  target_include_directories(test_basic PRIVATE ${Catch2_INCLUDE_DIR})
+  target_link_libraries(test_basic PRIVATE ${PROJECT_NAME_CXX} Catch2::Catch2WithMain)
+    
+  # TODO: Figure out how to make this work, order of C++ install might mess this up
+  #add_custom_command(TARGET test_basic 
+  #                   POST_BUILD
+  #                   COMMAND ctest -C $<CONFIGURATION> --output-on-failure)
+endif() # BUILD_TESTS
+

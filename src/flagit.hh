@@ -9,7 +9,10 @@ namespace flagit {
     class FlagIt {
     public:
         // Create instance of this class from 'sourceUrl'.
-        FlagIt(std::string sourceUrl) throw(std::invalid_argument);
+        explicit FlagIt(std::string sourceUrl) throw(std::invalid_argument);
+
+        // For testing purposes.
+        explicit FlagIt(std::shared_ptr<DataFetcher> dataFetcherPtr);
 
         // Return true if 'feature' enabled for everyone, false otherwise.
         bool enabled(std::string feature) throw(std::logic_error);
@@ -24,7 +27,6 @@ namespace flagit {
         // Used by enabled/disabledFor.
         bool contains(std::string const& feature, std::string const& parameter, std::string const& key);
 
-        std::string m_sourceUrl;
         std::shared_ptr<DataFetcher> m_dataFetcherPtr;
     };
 

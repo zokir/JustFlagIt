@@ -12,9 +12,14 @@ namespace flagit {
         DataFetcher(std::string const& sourceUrl, int remoteFetchMs = 10000, int fileFetchMs = 5000);
 
         // Return data.
-        nlohmann::json getData() const noexcept {
+        virtual nlohmann::json getData() const noexcept {
             return m_data;
         }
+
+    protected:
+        // For testing purposes.
+        DataFetcher() = default;
+
     private:
         void refreshFromRemote();
         void refreshFromFile();
