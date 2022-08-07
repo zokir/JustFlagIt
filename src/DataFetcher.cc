@@ -2,31 +2,10 @@
 #include <curl/curl.h>
 #include <iostream>
 #include <thread>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <pwd.h>
 #include <fstream>
+#include <FileUtils.hh>
 
 namespace {
-
-    std::string getConfigDir() {
-        char const* homeDir;
-
-        if ((homeDir = getenv("HOME")) == nullptr) {
-            homeDir = getpwuid(getuid())->pw_dir;
-        }
-
-        std::string result = homeDir;
-        result += "/.flagit";
-        int status = mkdir(result.c_str(), 0755);
-        if (status == -1 && errno != EEXIST) {
-            throw std::runtime_error("Could not create config directory");
-        }
-
-        return result;
-    }
-
-    std::string const CONFIG_DIR = getConfigDir();
 
     size_t writeFunction(void* ptr, size_t size, size_t nmemb, std::string* data) {
         data->append((char*)ptr, size * nmemb);
@@ -65,29 +44,13 @@ namespace {
         return "";
     }
 
-    // Return fileName corresponding to 'sourceUrl'. We need to have stable fileName that other processes can reuse,
-    // when url is shared. At the same time, we need to make sure we can actually create a file, so we need to remove
-    // unsupported characters. Its also good not to mangle the fileName so that people can debug easier.
-    std::string getFileNameFromUrl(std::string const& url) {
-        std::string fileName = url;
-        // Remove protocol from fileName.
-        fileName.erase(0, fileName.find("://") + 3);
-        std::replace(fileName.begin(), fileName.end(), '/', '_');
-        std::replace(fileName.begin(), fileName.end(), '?', '_');
-
-        return fileName;
-    }
-
-    std::string getFilePath(std::string const& url) {
-        return CONFIG_DIR + "/" + getFileNameFromUrl(url) + ".json";
-    }
-
 } // close namespace<anonymous>
 
-namespace flagit {  
+namespace flagit {
 
     DataFetcher::DataFetcher(std::string const &sourceUrl, int remoteFetchMs, int fileFetchMs)
-    : m_sourceUrl(sourceUrl), m_remoteFetchMs(remoteFetchMs), m_fileFetchMs(fileFetchMs), m_filePath(getFilePath(sourceUrl)) {
+    : m_sourceUrl(sourceUrl), m_remoteFetchMs(remoteFetchMs), m_fileFetchMs(fileFetchMs),
+    m_filePath(details::getFilePath(sourceUrl)) {
         // get our config from remote.
         refreshFromRemote();
         // make sure we do this periodically.
@@ -117,7 +80,9 @@ namespace flagit {
             throw std::invalid_argument("Invalid json: " + response);
         }
 
-        // TODO: Get scoped flock on the file, filename.lock etc.
+        // TODO: Need to make a call whether we want to lock the file
+        // or whether its safer to leave it alone and just deal with
+        // the fact that sometimes we would fail to refresh the data.
         std::ofstream ofs(m_filePath);
         ofs << response;
         ofs.close();
@@ -126,7 +91,7 @@ namespace flagit {
     }
 
     void DataFetcher::refreshFromFile() {
-        // TODO: lock, unlock again.
+        // TODO: Same lock dilemma.
         std::ifstream t(m_filePath);
         std::stringstream buffer;
         buffer << t.rdbuf();

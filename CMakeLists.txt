@@ -50,7 +50,7 @@ endif() # BUILD_PYTHON
 
 if (BUILD_CXX)
   set(PROJECT_NAME_CXX "${PROJECT_NAME}_cxx")
-  add_library(${PROJECT_NAME_CXX} SHARED ${sources})
+  add_library(${PROJECT_NAME_CXX} SHARED ${sources} src/FileUtils.cc src/FileUtils.hh)
   target_link_libraries(${PROJECT_NAME_CXX} PUBLIC ${CURL_LIBRARIES} nlohmann_json::nlohmann_json)
 
   set_target_properties(${PROJECT_NAME_CXX} PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/src/flagit.hh")
