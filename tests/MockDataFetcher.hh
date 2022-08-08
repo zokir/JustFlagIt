@@ -1,6 +1,3 @@
-//
-// Created by Zokir Tiliaev on 8/7/22.
-//
 
 #ifndef FLAGIT_MOCKDATAFETCHER_HH
 #define FLAGIT_MOCKDATAFETCHER_HH

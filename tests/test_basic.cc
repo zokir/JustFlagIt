@@ -11,7 +11,12 @@ TEST_CASE( "Flag it basic test", "[enabled-feature]" ) {
     REQUIRE_FALSE(flags.enabled("feature3"));
     REQUIRE(flags.enabledFor("feature1", "key1"));
     REQUIRE_FALSE(flags.enabledFor("feature1", "key2"));
+    // unknown key
     REQUIRE_FALSE(flags.enabledFor("feature1", "key3"));
+    REQUIRE(flags.disabledFor("feature1", "key2"));
+    REQUIRE_FALSE(flags.disabledFor("feature1", "key1"));
+    // unknown key
+    REQUIRE_FALSE(flags.disabledFor("feature1", "key3"));
 }
 
 TEST_CASE( "Flag it basic test", "[disabled-feature]" ) {
@@ -23,4 +28,7 @@ TEST_CASE( "Flag it basic test", "[disabled-feature]" ) {
     REQUIRE(flags.enabledFor("feature2", "alexa"));
     REQUIRE_FALSE(flags.enabledFor("feature2", "alex"));
     REQUIRE_FALSE(flags.enabledFor("feature2", "robert"));
+    REQUIRE(flags.disabledFor("feature2", "alex"));
+    REQUIRE_FALSE(flags.disabledFor("feature2", "john"));
+    REQUIRE_FALSE(flags.disabledFor("feature2", "andrea"));
 }
