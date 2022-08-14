@@ -1,6 +1,4 @@
 #include "flagit.hh"
-#include <curl/curl.h>
-#include <iostream>
 #include <nlohmann/json.hpp>
 #include "Constants.hh"
 #include "DataFetcher.hh"

@@ -44,29 +44,39 @@ namespace {
         return "";
     }
 
+    // Sleep for 'ms' milliseconds, interrupt if flag is unset.
+    void sleepForWithFlag(int ms, volatile bool& flag) {
+        int sleepInterval = ms / 100;
+        while (ms > 0 && flag) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepInterval));
+            ms -= sleepInterval;
+        }
+    }
+
 } // close namespace<anonymous>
 
 namespace flagit {
 
     DataFetcher::DataFetcher(std::string const &sourceUrl, int remoteFetchMs, int fileFetchMs)
     : m_sourceUrl(sourceUrl), m_remoteFetchMs(remoteFetchMs), m_fileFetchMs(fileFetchMs),
-    m_filePath(details::getFilePath(sourceUrl)) {
+    m_filePath(details::getFilePath(sourceUrl)), m_active(true) {
         // get our config from remote.
         refreshFromRemote();
+        refreshFromFile();
         // make sure we do this periodically.
-        std::thread([this]() {
-            while (true) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(m_remoteFetchMs));
+        m_remoteRefreshThread = std::thread([this]() {
+            while (m_active) {
                 refreshFromRemote();
+                sleepForWithFlag(m_remoteFetchMs, m_active);
             }
-        }).detach();
+        });
         // refresh more frequently from file. This would help if we have more processes using this url.
-        std::thread([this]() {
-            while (true) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(m_fileFetchMs));
+        m_fileRefreshThread = std::thread([this]() {
+            while (m_active) {
                 refreshFromFile();
+                sleepForWithFlag(m_fileFetchMs, m_active);
             }
-        }).detach();
+        });
     }
 
     void DataFetcher::refreshFromRemote() {
@@ -77,7 +87,7 @@ namespace flagit {
         }
 
         if (!nlohmann::json::accept(response)) {
-            throw std::invalid_argument("Invalid json: " + response);
+            throw std::invalid_argument("Invalid json from remote: " + response);
         }
 
         // TODO: Need to make a call whether we want to lock the file
@@ -86,8 +96,6 @@ namespace flagit {
         std::ofstream ofs(m_filePath);
         ofs << response;
         ofs.close();
-        // Lets refresh actual data asap.
-        refreshFromFile();
     }
 
     void DataFetcher::refreshFromFile() {
@@ -97,8 +105,19 @@ namespace flagit {
         buffer << t.rdbuf();
         std::string content = buffer.str();
         if (!nlohmann::json::accept(content)) {
-            throw std::invalid_argument("Invalid json: " + content);
+            throw std::invalid_argument("Invalid json from file: " + content);
         }
         m_data = nlohmann::json::parse(content);
+        t.close();
+    }
+
+    DataFetcher::~DataFetcher() {
+        m_active = false;
+        if (m_remoteRefreshThread.joinable()) {
+            m_remoteRefreshThread.join();
+        }
+        if (m_fileRefreshThread.joinable()) {
+            m_fileRefreshThread.join();
+        }
     }
 } // flagit

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <nlohmann/json.hpp>
+#include <thread>
 
 namespace flagit {
 
@@ -16,6 +17,8 @@ namespace flagit {
             return m_data;
         }
 
+        ~DataFetcher();
+
     protected:
         // For testing purposes.
         DataFetcher() = default;
@@ -28,7 +31,10 @@ namespace flagit {
         int m_remoteFetchMs;
         int m_fileFetchMs;
         nlohmann::json m_data;
-        std::string m_filePath;
+        const std::string m_filePath;
+        volatile bool m_active;
+        std::thread m_remoteRefreshThread;
+        std::thread m_fileRefreshThread;
     };
 
 } // flagit
