@@ -9,8 +9,8 @@ namespace flagit {
 
     class DataFetcher {
     public:
-        // Create instance of this class from 'sourceUrl'. Optionally, specify remoteFetchMs and/or fileFetchMs
-        DataFetcher(std::string const& sourceUrl, int remoteFetchMs = 10000, int fileFetchMs = 5000);
+        // Create instance of this class from 'sourceUrl'. Optionally, specify remoteFetchMs.
+        DataFetcher(std::string const& sourceUrl, int remoteFetchMs = 30000);
 
         // Return data.
         virtual nlohmann::json getData() const noexcept {
@@ -25,16 +25,12 @@ namespace flagit {
 
     private:
         void refreshFromRemote();
-        void refreshFromFile();
 
         std::string m_sourceUrl;
         int m_remoteFetchMs;
-        int m_fileFetchMs;
         nlohmann::json m_data;
-        const std::string m_filePath;
         volatile bool m_active;
         std::thread m_remoteRefreshThread;
-        std::thread m_fileRefreshThread;
     };
 
 } // flagit

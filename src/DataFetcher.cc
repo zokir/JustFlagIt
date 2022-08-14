@@ -57,24 +57,15 @@ namespace {
 
 namespace flagit {
 
-    DataFetcher::DataFetcher(std::string const &sourceUrl, int remoteFetchMs, int fileFetchMs)
-    : m_sourceUrl(sourceUrl), m_remoteFetchMs(remoteFetchMs), m_fileFetchMs(fileFetchMs),
-    m_filePath(details::getFilePath(sourceUrl)), m_active(true) {
+    DataFetcher::DataFetcher(std::string const &sourceUrl, int remoteFetchMs)
+    : m_sourceUrl(sourceUrl), m_remoteFetchMs(remoteFetchMs), m_active(true) {
         // get our config from remote.
         refreshFromRemote();
-        refreshFromFile();
         // make sure we do this periodically.
         m_remoteRefreshThread = std::thread([this]() {
             while (m_active) {
                 refreshFromRemote();
                 sleepForWithFlag(m_remoteFetchMs, m_active);
-            }
-        });
-        // refresh more frequently from file. This would help if we have more processes using this url.
-        m_fileRefreshThread = std::thread([this]() {
-            while (m_active) {
-                refreshFromFile();
-                sleepForWithFlag(m_fileFetchMs, m_active);
             }
         });
     }
@@ -86,38 +77,18 @@ namespace flagit {
             return;
         }
 
-        if (!nlohmann::json::accept(response)) {
+        if (!nlohmann::json::accept(response) && m_active) {
+            // we only throw if we are still active, no reason to throw in destructor.
             throw std::invalid_argument("Invalid json from remote: " + response);
         }
 
-        // TODO: Need to make a call whether we want to lock the file
-        // or whether its safer to leave it alone and just deal with
-        // the fact that sometimes we would fail to refresh the data.
-        std::ofstream ofs(m_filePath);
-        ofs << response;
-        ofs.close();
-    }
-
-    void DataFetcher::refreshFromFile() {
-        // TODO: Same lock dilemma.
-        std::ifstream t(m_filePath);
-        std::stringstream buffer;
-        buffer << t.rdbuf();
-        std::string content = buffer.str();
-        if (!nlohmann::json::accept(content)) {
-            throw std::invalid_argument("Invalid json from file: " + content);
-        }
-        m_data = nlohmann::json::parse(content);
-        t.close();
+        m_data = nlohmann::json::parse(response);
     }
 
     DataFetcher::~DataFetcher() {
         m_active = false;
         if (m_remoteRefreshThread.joinable()) {
             m_remoteRefreshThread.join();
-        }
-        if (m_fileRefreshThread.joinable()) {
-            m_fileRefreshThread.join();
         }
     }
 } // flagit
