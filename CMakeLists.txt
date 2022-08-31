@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.18)
 project(flagit VERSION 1.0 LANGUAGES CXX)
 
 # Fix, exception specifications with wrappers.
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # SWIG thing
 if(POLICY CMP0078)
