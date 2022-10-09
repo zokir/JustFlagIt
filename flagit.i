@@ -17,10 +17,10 @@ namespace std {
 %exception {
   try {
       $action
-  } catch(std::invalid_argument) {
-      SWIG_exception(SWIG_AttributeError, "Invalid Argument Error");
-  } catch(std::logic_error) {
-      SWIG_exception(SWIG_ValueError, "Logic error");
+  } catch(std::invalid_argument const& e) {
+      SWIG_exception(SWIG_AttributeError, e.what());
+  } catch(std::logic_error const& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
   } catch(...) {
       SWIG_exception(SWIG_RuntimeError, "Unknown exception");
   }

@@ -21,6 +21,6 @@ except RuntimeError as e:
     print(e)
 
 try:
-    FlagIt('http://127.0.0.1:9000/wowza/sample.json')
+    FlagIt("http://127.0.0.1:9000/wowza/sample.json")
 except ValueError as e:
     print(e)

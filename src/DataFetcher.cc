@@ -24,6 +24,7 @@ namespace {
             curl_easy_setopt(curl,CURLOPT_USERNAME, "");
             curl_easy_setopt(curl,CURLOPT_USERNAME, "");
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "FlagIt");
+            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 1L);
             //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
             std::string response;
@@ -32,7 +33,13 @@ namespace {
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
             curl_easy_setopt(curl, CURLOPT_HEADERDATA, &header_string);
 
-            curl_easy_perform(curl);
+            int maxAttempt = 3; // completely arbitrary
+            int maxSleepBetweenRetryMs = 50; // completely arbitrary
+            while (maxAttempt-- > 0 && curl_easy_perform(curl) != CURLE_OK) {
+                response.clear();
+                std::this_thread::sleep_for(std::chrono::milliseconds(maxSleepBetweenRetryMs));
+            }
+
             curl_easy_cleanup(curl);
             curl_global_cleanup();
             curl = NULL;
