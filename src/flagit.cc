@@ -1,15 +1,17 @@
 #include "flagit.hh"
 #include <nlohmann/json.hpp>
 #include "Constants.hh"
-#include "DataFetcher.hh"
+#include "DataRefresher.hh"
 
-flagit::FlagIt::FlagIt(std::string sourceUrl)
-    : m_dataFetcherPtr(std::make_shared<DataFetcher>(sourceUrl)) {}
+flagit::FlagIt::FlagIt(std::string sourceUrl, int remoteFetchMs)
+    : m_dataRefresherPtr(std::make_shared<DataRefresher>(std::make_unique<DataFetcher>(sourceUrl), remoteFetchMs)) {}
 
-    flagit::FlagIt::FlagIt(std::shared_ptr<DataFetcher> dataFetcherPtr): m_dataFetcherPtr(dataFetcherPtr) {}
+    flagit::FlagIt::FlagIt(DataFetcher* dataFetcher, int remoteFetchMs)
+    : m_dataRefresherPtr(std::make_shared<DataRefresher>(std::unique_ptr<DataFetcher>(dataFetcher), remoteFetchMs)) {}
+    flagit::FlagIt::FlagIt(std::shared_ptr<DataRefresher> dataRefresherPtr): m_dataRefresherPtr(dataRefresherPtr) {}
 
 bool flagit::FlagIt::enabled(std::string feature) {
-    nlohmann::json data = m_dataFetcherPtr->getData();
+    nlohmann::json data = m_dataRefresherPtr->getData();
     auto const& featureNode = data.find(feature);
     if (featureNode == data.end()) {
         return false;
@@ -36,7 +38,7 @@ bool flagit::FlagIt::disabledFor(std::string feature, std::string key) {
 }
 
 bool flagit::FlagIt::contains(std::string const& feature, std::string const& parameter, std::string const& key) {
-    nlohmann::json data = m_dataFetcherPtr->getData();
+    nlohmann::json data = m_dataRefresherPtr->getData();
     auto const& featureNode = data.find(feature);
     if (featureNode == data.end()) {
         return false;

@@ -2,13 +2,13 @@
 #ifndef FLAGIT_MOCKDATAFETCHER_HH
 #define FLAGIT_MOCKDATAFETCHER_HH
 
-#include <DataFetcher.hh>
+#include <DataRefresher.hh>
 
 namespace flagit {
 
-    class MockDataFetcher : public DataFetcher {
+    class MockDataFetcher : public DataRefresher {
     public:
-        MockDataFetcher(std::string content) : DataFetcher() {
+        MockDataFetcher(std::string content) : DataRefresher() {
             m_data = nlohmann::json::parse(content);
         }
 

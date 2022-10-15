@@ -2,37 +2,26 @@
 #define FLAGIT_DATAFETCHER_HH
 
 #include <string>
-#include <nlohmann/json.hpp>
-#include <thread>
 
 namespace flagit {
-
+    // Interface for fetching data from remote source.
     class DataFetcher {
     public:
-        // Create instance of this class from 'sourceUrl'. Optionally, specify remoteFetchMs.
-        DataFetcher(std::string const& sourceUrl, int remoteFetchMs = 30000);
+        // Create instance of this class from 'sourceUrl'.
+        explicit DataFetcher(std::string sourceUrl = "");
 
-        // Return data.
-        virtual nlohmann::json getData() const noexcept {
-            return m_data;
+        // Indirection to allow for cleaner override of 'fetchData' from target language.
+        std::string getData() {
+            return fetchData(m_sourceUrl);
         }
 
-        ~DataFetcher();
+        // Return data in json format. Empty, on failure.
+        virtual std::string fetchData(std::string sourceUrl);
 
-    protected:
-        // For testing purposes.
-        DataFetcher() = default;
-
+        virtual ~DataFetcher() = default;
     private:
-        void refreshFromRemote();
-
         std::string m_sourceUrl;
-        int m_remoteFetchMs;
-        nlohmann::json m_data;
-        volatile bool m_active;
-        std::thread m_remoteRefreshThread;
     };
-
 } // flagit
 
 #endif //FLAGIT_DATAFETCHER_HH
